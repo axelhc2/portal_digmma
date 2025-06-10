@@ -2,20 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class License extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'license',
         'domain',
         'ip',
-        'status',
         'lifetime',
         'expiration_date',
+        'status'
     ];
 
     protected $casts = [
@@ -23,21 +21,12 @@ class License extends Model
         'ip' => 'array',
         'lifetime' => 'boolean',
         'expiration_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
-    public static function generateLicenseKey()
+    public function appLaravel(): HasOne
     {
-        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        $segments = [];
-        
-        for ($i = 0; $i < 3; $i++) {
-            $segment = '';
-            for ($j = 0; $j < 6; $j++) {
-                $segment .= $chars[rand(0, strlen($chars) - 1)];
-            }
-            $segments[] = $segment;
-        }
-        
-        return 'digmma-' . implode('-', $segments);
+        return $this->hasOne(AppLaravel::class);
     }
 } 

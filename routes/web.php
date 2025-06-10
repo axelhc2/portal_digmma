@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\A2FController;
 use App\Http\Middleware\RequireA2F;
 use App\Http\Controllers\EnterpriseCategoryController;
 use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\LaravelController;
 
 Route::get('/', function () {
     return view('index');
@@ -60,5 +61,13 @@ Route::middleware(['auth', RequireA2F::class])->group(function () {
     // Routes pour la gestion des licences
     Route::resource('licenses', LicenseController::class);
     Route::post('/licenses/{license}/toggle-status', [LicenseController::class, 'toggleStatus'])->name('licenses.toggle-status');
+
+    // Routes pour Laravel
+    Route::get('/laravel', [LaravelController::class, 'online'])->name('laravel.index');
+    Route::get('/laravel/create', [LaravelController::class, 'create'])->name('laravel.create');
+    Route::post('/laravel', [LaravelController::class, 'store'])->name('laravel.store');
+    Route::get('/laravel/{id}/edit', [LaravelController::class, 'edit'])->name('laravel.edit');
+    Route::put('/laravel/{id}', [LaravelController::class, 'update'])->name('laravel.update');
+    Route::delete('/laravel/{id}', [LaravelController::class, 'destroy'])->name('laravel.destroy');
 });
 

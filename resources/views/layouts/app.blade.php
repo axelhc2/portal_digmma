@@ -101,9 +101,6 @@
 
 @endif
     
-
-
-    
 </head>
 <body class="bg-gray-50">   
     @if (!in_array(Route::currentRouteName(), ['login', 'two-factor.create', 'two-factor']) && !request()->is('404'))
@@ -117,9 +114,7 @@
     
 @endif
 
-    
-    
-
+@stack('scripts')
 
 </body>
 </html>

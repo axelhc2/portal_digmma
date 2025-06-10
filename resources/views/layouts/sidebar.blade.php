@@ -86,11 +86,18 @@
             </button>
             <ul id="dropdown-license" class="hidden py-2 space-y-2">
               <li>
-                <a href="/license/view" class="flex items-center w-full p-2 text-gray-50 transition duration-75 rounded-lg pl-11 border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">• Voir les licences</a>
+                <a href="/licenses" class="flex items-center w-full p-2 text-gray-50 transition duration-75 rounded-lg pl-11 border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">• Voir les licences</a>
               </li>
             </ul>
           </li>
           
+          <li>
+            <a href="/laravel" class="flex items-center p-2 text-gray-50 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">
+              <i class="fas fa-chart-line text-gray-500 transition duration-75 group-hover:text-gray-50 text-base"></i>
+              <span class="ms-3">Laravel</span>
+            </a>
+          </li>
+
           <!--<li>
              <a href="#" class="flex items-center p-2 text-gray-50 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">
                 <i class="fas fa-columns shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-50"></i>
