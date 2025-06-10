@@ -30,6 +30,12 @@ class LaravelController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            Log::info('Données reçues:', [
+                'all' => $request->all(),
+                'content_type' => $request->header('Content-Type'),
+                'accept' => $request->header('Accept')
+            ]);
+
             try {
                 $validated = $request->validate([
                     'license' => ['required', 'string', 'unique:licenses,license'],
@@ -53,6 +59,8 @@ class LaravelController extends Controller
                 ], 422);
             }
 
+            Log::info('Données validées:', $validated);
+
             $result = DB::transaction(function () use ($request) {
                 $isLifetime = $request->boolean('lifetime');
                 $expirationDate = null;
@@ -69,6 +77,7 @@ class LaravelController extends Controller
                     };
                 }
 
+                // Création de la licence
                 $license = License::create([
                     'license' => strval($request->license),
                     'domain' => array_map('strval', (array) $request->domains),
@@ -78,6 +87,9 @@ class LaravelController extends Controller
                     'status' => 'active'
                 ]);
 
+                Log::info('Licence créée:', $license->toArray());
+
+                // Création de l'application Laravel
                 $appLaravel = AppLaravel::create([
                     'first_name' => strval($request->first_name),
                     'last_name' => strval($request->last_name),
@@ -87,9 +99,34 @@ class LaravelController extends Controller
                     'site_name' => strval($request->site_name)
                 ]);
 
+                Log::info('Application Laravel créée:', $appLaravel->toArray());
+
+                // Envoi de la requête au serveur d'authentification
+                $authResponse = Http::timeout(180)->withHeaders([
+                    'token-auth' => '8f7c2e2e-1f6e-42f4-9f1b-965f9f4d6ab9',
+                    'token-secret' => 'b64fdf1c-1e96-4ac4-83fc-b9f78e2c38c1',
+                    'Content-Type' => 'application/json'
+                ])->post('http://31.59.234.92:3000/auth', [
+                    'site_name' => $appLaravel->site_name,
+                    'user_first_name' => $appLaravel->first_name,
+                    'user_last_name' => $appLaravel->last_name,
+                    'license_key' => $license->license,
+                    'domaine' => $appLaravel->domain
+                ]);
+
+                Log::info('Réponse du serveur d\'authentification:', [
+                    'status' => $authResponse->status(),
+                    'body' => $authResponse->json()
+                ]);
+
+                if (!$authResponse->successful()) {
+                    throw new \Exception('Échec de l\'authentification: ' . $authResponse->body());
+                }
+
                 return [
                     'license' => $license,
-                    'app' => $appLaravel
+                    'app' => $appLaravel,
+                    'auth_response' => $authResponse->json()
                 ];
             });
 
@@ -100,6 +137,14 @@ class LaravelController extends Controller
             ]);
 
         } catch (Throwable $e) {
+            Log::error('Erreur lors de la création:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
             return response()->json([
                 'message' => 'Une erreur est survenue lors de la création de la licence',
                 'error' => $e->getMessage(),
