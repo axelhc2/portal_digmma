@@ -8,10 +8,15 @@ use App\Http\Middleware\RequireA2F;
 use App\Http\Controllers\EnterpriseCategoryController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\LaravelController;
+use App\Http\Controllers\ServerStatsController;
 
 Route::get('/', function () {
     return view('index');
 });
+
+// Route pour les statistiques du serveur
+Route::get('/api/server-stats', [ServerStatsController::class, 'getStats']);
+
 Route::get('/api/verif/license/{license}', [LicenseController::class, 'verifyLicense'])->name('licenses.verify');
 // Routes d'authentification
 Route::middleware('guest')->group(function () {

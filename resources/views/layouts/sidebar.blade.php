@@ -51,10 +51,32 @@
     <div class="h-full px-3 py-4 overflow-y-auto">
        <ul class="space-y-2 font-medium">
         <li>
-          <a href="#" class="flex items-center p-2 text-gray-50 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">
+          <a href="/" class="flex items-center p-2 text-gray-50 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">
             <i class="fas fa-chart-line text-gray-500 transition duration-75 group-hover:text-gray-50 text-base"></i>
             <span class="ms-3">Dashboard</span>
           </a>
+        </li>
+
+        <li>
+          <button type="button" class="flex items-center w-full p-2 text-base text-gray-50 transition duration-75 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl" aria-controls="dropdown-demarche" data-collapse-toggle="dropdown-demarche">
+            <i class="fas fa-building shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-50"></i>
+            <span class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap">Digmma</span>
+            <i class="fas fa-chevron-down w-3 h-3"></i>
+          </button>
+          <ul id="dropdown-demarche" class="hidden py-2 space-y-2">
+            <li>
+              <a href="/entreprise" class="flex items-center w-full p-2 text-gray-50 transition duration-75 rounded-lg pl-11 border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">• Entreprise</a>
+            </li>
+            <li>
+              <a href="/entreprise/groupe" class="flex items-center w-full p-2 text-gray-50 transition duration-75 rounded-lg pl-11 border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">• Groupe</a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center w-full p-2 text-gray-50 transition duration-75 rounded-lg pl-11 border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">• Email</a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center w-full p-2 text-gray-50 transition duration-75 rounded-lg pl-11 border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">• Liste envoie</a>
+            </li>
+          </ul>
         </li>
         
           <li>
@@ -80,7 +102,7 @@
           </li>
           <li>
             <button type="button" class="flex items-center w-full p-2 text-base text-gray-50 transition duration-75 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl" aria-controls="dropdown-license" data-collapse-toggle="dropdown-license">
-              <i class="fas fa-tasks shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-50"></i>
+              <i class="fas fa-server shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-50"></i>
               <span class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap">License</span>
               <i class="fas fa-chevron-down w-3 h-3"></i>
             </button>
@@ -93,7 +115,7 @@
           
           <li>
             <a href="/laravel" class="flex items-center p-2 text-gray-50 rounded-lg border border-transparent hover:bg-[#e6007e]/10 group hover:border-[#e6007e] hover:rounded-xl">
-              <i class="fas fa-chart-line text-gray-500 transition duration-75 group-hover:text-gray-50 text-base"></i>
+              <i class="fas fa-code text-gray-500 transition duration-75 group-hover:text-gray-50 text-base"></i>
               <span class="ms-3">Laravel</span>
             </a>
           </li>
