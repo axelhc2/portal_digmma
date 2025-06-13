@@ -250,56 +250,30 @@ function createLaravel() {
             console.log('Données préparées pour l\'envoi:', submitData);
 
             try {
-                console.log('Envoi de la requête au serveur');
                 const response = await fetch('{{ route('laravel.store') }}', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': token,
+                        'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'Content-Type': 'application/json'
+                        'X-CSRF-TOKEN': token
                     },
                     body: JSON.stringify(submitData)
                 });
 
-                const responseData = await response.json();
-                console.log('Réponse du serveur:', responseData);
-
-                clearTimeout(this.apiWaitingTimer);
-                this.showApiWaitingMessage = false;
-
+                const result = await response.json();
+                
                 if (response.ok) {
-                    if (responseData.status === 'success') {
-                        console.log('Création réussie');
-                        this.successMessage = responseData.message || 'Opération réussie';
-                        setTimeout(() => {
-                            console.log('Redirection vers la liste');
-                            window.location.href = '{{ route('laravel.index') }}';
-                        }, 1500);
-                    } else {
-                        console.error('Erreur de création:', responseData.message);
-                        this.errors = [responseData.message || 'Une erreur est survenue'];
-                        document.querySelector('.bg-red-50')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
+                    window.location.href = '{{ route('laravel.index') }}';
                 } else {
-                    if (response.status === 422) {
-                        console.error('Erreur de validation:', responseData.errors);
-                        if (responseData.errors) {
-                            this.errors = Object.values(responseData.errors).flat();
-                        } else {
-                            this.errors = [responseData.message || 'Erreur de validation'];
-                        }
-                    } else {
-                        console.error('Erreur serveur:', responseData.error);
-                        this.errors = [responseData.error || 'Une erreur est survenue lors de la création de l\'application.'];
-                    }
-                    document.querySelector('.bg-red-50')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    this.errors = Object.values(result.errors || {}).flat();
                 }
             } catch (error) {
-                console.error('Erreur lors de la communication avec le serveur:', error);
-                this.errors = ['Une erreur est survenue lors de la communication avec le serveur.'];
-                document.querySelector('.bg-red-50')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                console.error('Erreur lors de la soumission:', error);
+                this.errors = ['Une erreur est survenue lors de la création. Veuillez réessayer.'];
             } finally {
                 this.isSubmitting = false;
+                clearTimeout(this.apiWaitingTimer);
+                this.showApiWaitingMessage = false;
             }
         }
     }
