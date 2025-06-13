@@ -31,66 +31,37 @@ class ServerStatsController extends Controller
 
     private function getCpuUsage()
     {
-        // Lecture des statistiques CPU
-        $stat1 = file('/proc/stat');
-        usleep(100000); // Attendre 100ms
-        $stat2 = file('/proc/stat');
-
-        $cpu1 = explode(' ', preg_replace('/\s+/', ' ', $stat1[0]));
-        $cpu2 = explode(' ', preg_replace('/\s+/', ' ', $stat2[0]));
-
-        // Calcul de l'utilisation CPU
-        $diff = [];
-        for ($i = 1; $i < 8; $i++) {
-            $diff[$i] = $cpu2[$i] - $cpu1[$i];
-        }
-
-        $total = array_sum($diff);
-        $idle = $diff[4];
-        
-        return round(100 * ($total - $idle) / $total);
+        // Utilisation de top pour obtenir l'utilisation CPU
+        $load = shell_exec("top -bn1 | grep 'Cpu(s)' | awk '{print $2}'");
+        return round((float)$load);
     }
 
     private function getRamUsage()
     {
-        $meminfo = file('/proc/meminfo');
-        $meminfo = array_filter($meminfo);
+        // Utilisation de free pour obtenir l'utilisation RAM
+        $free = shell_exec('free');
+        $free = (string)trim($free);
+        $free_arr = explode("\n", $free);
+        $mem = explode(" ", $free_arr[1]);
+        $mem = array_filter($mem);
+        $mem = array_merge($mem);
         
-        $total = 0;
-        $free = 0;
-        $cached = 0;
-        $buffers = 0;
-        
-        foreach ($meminfo as $line) {
-            if (strpos($line, 'MemTotal:') === 0) {
-                $total = (int)filter_var($line, FILTER_SANITIZE_NUMBER_INT);
-            }
-            if (strpos($line, 'MemFree:') === 0) {
-                $free = (int)filter_var($line, FILTER_SANITIZE_NUMBER_INT);
-            }
-            if (strpos($line, 'Cached:') === 0) {
-                $cached = (int)filter_var($line, FILTER_SANITIZE_NUMBER_INT);
-            }
-            if (strpos($line, 'Buffers:') === 0) {
-                $buffers = (int)filter_var($line, FILTER_SANITIZE_NUMBER_INT);
-            }
-        }
-        
-        $used = $total - $free - $cached - $buffers;
-        return round(($used / $total) * 100);
+        $memory_usage = $mem[2]/$mem[1]*100;
+        return round($memory_usage);
     }
 
     private function getDiskUsage()
     {
-        $total = disk_total_space('/');
-        $free = disk_free_space('/');
-        $used = $total - $free;
+        // Utilisation de df pour obtenir l'utilisation disque
+        $df = shell_exec('df -h /');
+        $df = explode("\n", $df);
+        $df = explode(" ", preg_replace('/\s+/', ' ', $df[1]));
+        $df = array_filter($df);
+        $df = array_merge($df);
         
-        // Convertir en GB pour plus de précision
-        $total_gb = $total / (1024 * 1024 * 1024);
-        $used_gb = $used / (1024 * 1024 * 1024);
-        
-        return round(($used_gb / $total_gb) * 100);
+        // Convertir le pourcentage en nombre
+        $usage = str_replace('%', '', $df[4]);
+        return (int)$usage;
     }
 
     private function getPing()

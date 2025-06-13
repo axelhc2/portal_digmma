@@ -30,7 +30,7 @@ class LaravelController extends Controller
         return view('laravel.create');
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request): RedirectResponse
     {
         try {
             Log::info('Début de la création d\'une nouvelle application Laravel', [
@@ -64,10 +64,8 @@ class LaravelController extends Controller
                     'errors' => $e->errors(),
                     'request_data' => $request->all()
                 ]);
-                return response()->json([
-                    'message' => 'Erreur de validation',
-                    'errors' => $e->errors()
-                ], 422);
+                return redirect()->route('laravel.index')
+                    ->with('error', 'Erreur de validation des données.');
             }
 
             $result = DB::transaction(function () use ($request) {
@@ -86,14 +84,8 @@ class LaravelController extends Controller
                         'years' => now()->addYears($value),
                         default => now(),
                     };
-                    Log::info('Date d\'expiration calculée', [
-                        'value' => $value,
-                        'unit' => $unit,
-                        'expiration_date' => $expirationDate
-                    ]);
                 }
 
-                Log::info('Création de la licence');
                 $license = License::create([
                     'license' => strval($request->license),
                     'domain' => array_map(function ($domain) {
@@ -105,9 +97,7 @@ class LaravelController extends Controller
                     'expiration_date' => $expirationDate,
                     'status' => 'active'
                 ]);
-                Log::info('Licence créée avec succès', ['license' => $license->toArray()]);
 
-                Log::info('Création de l\'application Laravel');
                 $appLaravel = AppLaravel::create([
                     'first_name' => strval($request->first_name),
                     'last_name' => strval($request->last_name),
@@ -116,10 +106,8 @@ class LaravelController extends Controller
                     'license_id' => $license->id,
                     'site_name' => strval($request->site_name)
                 ]);
-                Log::info('Application Laravel créée avec succès', ['app' => $appLaravel->toArray()]);
 
-                Log::info('Envoi de la requête au serveur d\'authentification');
-                $authResponse = Http::timeout(180)->withHeaders([
+                $response = Http::timeout(180)->withHeaders([
                     'token-auth' => '8f7c2e2e-1f6e-42f4-9f1b-965f9f4d6ab9',
                     'token-secret' => 'b64fdf1c-1e96-4ac4-83fc-b9f78e2c38c1',
                     'Content-Type' => 'application/json'
@@ -131,52 +119,28 @@ class LaravelController extends Controller
                     'domaine' => $appLaravel->domain
                 ]);
 
-                Log::info('Réponse du serveur d\'authentification', [
-                    'status' => $authResponse->status(),
-                    'body' => $authResponse->json()
+                Log::info('Réponse reçue du serveur d\'authentification', [
+                    'status' => $response->status(),
+                    'body' => $response->json()
                 ]);
 
-                if (!$authResponse->successful()) {
-                    Log::error('Échec de l\'authentification', [
-                        'status' => $authResponse->status(),
-                        'body' => $authResponse->body()
-                    ]);
-                    throw new \Exception('Échec de l\'authentification: ' . $authResponse->body());
-                }
-
-                Log::info('Transaction terminée avec succès');
                 return [
                     'license' => $license,
-                    'app' => $appLaravel,
-                    'auth_response' => $authResponse->json()
+                    'app' => $appLaravel
                 ];
             });
 
-            Log::info('Création terminée avec succès');
-            return response()->json([
-                'status' => 'success',
-                'message' => 'La licence a été créée avec succès',
-                'data' => $result
-            ]);
+            return redirect()->route('laravel.index')
+                ->with('success', 'Application Laravel créée avec succès');
 
         } catch (Throwable $e) {
             Log::error('Erreur lors de la création', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json([
-                'message' => 'Une erreur est survenue lors de la création de la licence',
-                'error' => $e->getMessage(),
-                'details' => config('app.debug') ? [
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
-                ] : null
-            ], 500);
+            return redirect()->route('laravel.index')
+                ->with('error', 'Une erreur est survenue lors de la création.');
         }
     }
 
