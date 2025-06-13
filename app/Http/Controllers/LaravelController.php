@@ -18,25 +18,31 @@ class LaravelController extends Controller
 {
     public function index(): View
     {
+        Log::info('Affichage de la liste des applications Laravel');
         $apps = AppLaravel::with('license')->get();
+        Log::info('Applications récupérées', ['count' => $apps->count()]);
         return view('laravel.index', compact('apps'));
     }
 
     public function create(): View
     {
+        Log::info('Affichage du formulaire de création d\'application Laravel');
         return view('laravel.create');
     }
 
     public function store(Request $request): JsonResponse
     {
         try {
-            Log::info('Données reçues:', [
-                'all' => $request->all(),
-                'content_type' => $request->header('Content-Type'),
-                'accept' => $request->header('Accept')
+            Log::info('Début de la création d\'une nouvelle application Laravel', [
+                'request_data' => $request->except(['_token']),
+                'headers' => [
+                    'content_type' => $request->header('Content-Type'),
+                    'accept' => $request->header('Accept')
+                ]
             ]);
 
             try {
+                Log::info('Validation des données de la requête');
                 $validated = $request->validate([
                     'license' => ['required', 'string', 'unique:licenses,license'],
                     'domains' => ['required', 'array', 'min:1'],
@@ -52,16 +58,21 @@ class LaravelController extends Controller
                     'domain' => ['required', 'string', 'max:255'],
                     'site_name' => ['required', 'string', 'max:255'],
                 ]);
+                Log::info('Données validées avec succès', ['validated_data' => $validated]);
             } catch (\Illuminate\Validation\ValidationException $e) {
+                Log::error('Erreur de validation', [
+                    'errors' => $e->errors(),
+                    'request_data' => $request->all()
+                ]);
                 return response()->json([
                     'message' => 'Erreur de validation',
                     'errors' => $e->errors()
                 ], 422);
             }
 
-            Log::info('Données validées:', $validated);
-
             $result = DB::transaction(function () use ($request) {
+                Log::info('Début de la transaction de création');
+                
                 $isLifetime = $request->boolean('lifetime');
                 $expirationDate = null;
                 
@@ -75,21 +86,28 @@ class LaravelController extends Controller
                         'years' => now()->addYears($value),
                         default => now(),
                     };
+                    Log::info('Date d\'expiration calculée', [
+                        'value' => $value,
+                        'unit' => $unit,
+                        'expiration_date' => $expirationDate
+                    ]);
                 }
 
-                // Création de la licence
+                Log::info('Création de la licence');
                 $license = License::create([
                     'license' => strval($request->license),
-                    'domain' => array_map('strval', (array) $request->domains),
+                    'domain' => array_map(function ($domain) {
+                        $domain = strval($domain);
+                        return str_starts_with($domain, 'https://') ? $domain : 'https://' . $domain;
+                    }, (array) $request->domains),
                     'ip' => array_map('strval', (array) $request->ips),
                     'lifetime' => $isLifetime,
                     'expiration_date' => $expirationDate,
                     'status' => 'active'
                 ]);
+                Log::info('Licence créée avec succès', ['license' => $license->toArray()]);
 
-                Log::info('Licence créée:', $license->toArray());
-
-                // Création de l'application Laravel
+                Log::info('Création de l\'application Laravel');
                 $appLaravel = AppLaravel::create([
                     'first_name' => strval($request->first_name),
                     'last_name' => strval($request->last_name),
@@ -98,10 +116,9 @@ class LaravelController extends Controller
                     'license_id' => $license->id,
                     'site_name' => strval($request->site_name)
                 ]);
+                Log::info('Application Laravel créée avec succès', ['app' => $appLaravel->toArray()]);
 
-                Log::info('Application Laravel créée:', $appLaravel->toArray());
-
-                // Envoi de la requête au serveur d'authentification
+                Log::info('Envoi de la requête au serveur d\'authentification');
                 $authResponse = Http::timeout(180)->withHeaders([
                     'token-auth' => '8f7c2e2e-1f6e-42f4-9f1b-965f9f4d6ab9',
                     'token-secret' => 'b64fdf1c-1e96-4ac4-83fc-b9f78e2c38c1',
@@ -114,15 +131,20 @@ class LaravelController extends Controller
                     'domaine' => $appLaravel->domain
                 ]);
 
-                Log::info('Réponse du serveur d\'authentification:', [
+                Log::info('Réponse du serveur d\'authentification', [
                     'status' => $authResponse->status(),
                     'body' => $authResponse->json()
                 ]);
 
                 if (!$authResponse->successful()) {
+                    Log::error('Échec de l\'authentification', [
+                        'status' => $authResponse->status(),
+                        'body' => $authResponse->body()
+                    ]);
                     throw new \Exception('Échec de l\'authentification: ' . $authResponse->body());
                 }
 
+                Log::info('Transaction terminée avec succès');
                 return [
                     'license' => $license,
                     'app' => $appLaravel,
@@ -130,6 +152,7 @@ class LaravelController extends Controller
                 ];
             });
 
+            Log::info('Création terminée avec succès');
             return response()->json([
                 'status' => 'success',
                 'message' => 'La licence a été créée avec succès',
@@ -137,7 +160,7 @@ class LaravelController extends Controller
             ]);
 
         } catch (Throwable $e) {
-            Log::error('Erreur lors de la création:', [
+            Log::error('Erreur lors de la création', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -160,17 +183,36 @@ class LaravelController extends Controller
     public function online(): View
     {
         try {
+            Log::info('Vérification du statut en ligne des applications');
             $localApps = AppLaravel::with('license')->get();
+            Log::info('Applications locales récupérées', ['count' => $localApps->count()]);
             
             $appsWithStatus = $localApps->map(function ($app) {
+                Log::info('Vérification du statut pour l\'application', ['domain' => $app->domain]);
                 try {
                     $response = Http::timeout(10)->get("https://{$app->domain}");
                     $status = $response->successful();
+                    Log::info('Statut HTTPS vérifié', [
+                        'domain' => $app->domain,
+                        'status' => $status
+                    ]);
                 } catch (\Exception $e) {
+                    Log::warning('Échec de la vérification HTTPS', [
+                        'domain' => $app->domain,
+                        'error' => $e->getMessage()
+                    ]);
                     try {
                         $response = Http::timeout(10)->get("http://{$app->domain}");
                         $status = $response->successful();
+                        Log::info('Statut HTTP vérifié', [
+                            'domain' => $app->domain,
+                            'status' => $status
+                        ]);
                     } catch (\Exception $e) {
+                        Log::error('Échec de la vérification HTTP', [
+                            'domain' => $app->domain,
+                            'error' => $e->getMessage()
+                        ]);
                         $status = false;
                     }
                 }
@@ -185,12 +227,17 @@ class LaravelController extends Controller
                 ];
             });
 
+            Log::info('Vérification des statuts terminée');
             return view('laravel.online', [
                 'apps' => $appsWithStatus,
                 'error' => null
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Erreur lors de la vérification des statuts', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return view('laravel.online', [
                 'apps' => collect(),
                 'error' => 'Impossible de récupérer les applications. Veuillez réessayer plus tard.'
@@ -200,12 +247,19 @@ class LaravelController extends Controller
 
     public function edit($id): View
     {
+        Log::info('Affichage du formulaire d\'édition', ['app_id' => $id]);
         $app = AppLaravel::with('license')->findOrFail($id);
+        Log::info('Application trouvée', ['app' => $app->toArray()]);
         return view('laravel.edit', compact('app'));
     }
 
     public function update(Request $request, $id): RedirectResponse
     {
+        Log::info('Début de la mise à jour de l\'application', [
+            'app_id' => $id,
+            'request_data' => $request->all()
+        ]);
+
         $app = AppLaravel::findOrFail($id);
 
         $request->validate([
@@ -216,6 +270,7 @@ class LaravelController extends Controller
         ]);
 
         $domain = strtolower(str_replace(' ', '', $request->site_name)) . '.digmma.site';
+        Log::info('Nouveau domaine généré', ['domain' => $domain]);
 
         $app->update([
             'first_name' => $request->first_name,
@@ -225,15 +280,18 @@ class LaravelController extends Controller
             'domain' => $domain,
         ]);
 
+        Log::info('Application mise à jour avec succès', ['app' => $app->toArray()]);
         return redirect()->route('laravel.index')
             ->with('success', 'Application Laravel mise à jour avec succès.');
     }
 
     public function destroy($id): RedirectResponse
     {
+        Log::info('Début de la suppression de l\'application', ['app_id' => $id]);
         $app = AppLaravel::findOrFail($id);
         
         try {
+            Log::info('Envoi de la requête de suppression au serveur distant', ['domain' => $app->domain]);
             $response = Http::withHeaders([
                 'token-auth' => '8f7c2e2e-1f6e-42f4-9f1b-965f9f4d6ab9',
                 'token-secret' => 'b64fdf1c-1e96-4ac4-83fc-b9f78e2c38c1',
@@ -242,22 +300,34 @@ class LaravelController extends Controller
                 'domaine' => $app->domain
             ]);
 
+            Log::info('Suppression locale de l\'application et de sa licence');
             DB::transaction(function () use ($app) {
                 if ($app->license) {
                     $app->license->delete();
+                    Log::info('Licence supprimée', ['license_id' => $app->license->id]);
                 }
                 $app->delete();
+                Log::info('Application supprimée', ['app_id' => $app->id]);
             });
 
+            Log::info('Suppression terminée avec succès');
             return redirect()->route('laravel.index')
                 ->with('success', 'Application Laravel et sa licence supprimées avec succès.');
 
         } catch (\Exception $e) {
+            Log::error('Erreur lors de la suppression', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            Log::info('Tentative de suppression locale uniquement');
             DB::transaction(function () use ($app) {
                 if ($app->license) {
                     $app->license->delete();
+                    Log::info('Licence supprimée localement', ['license_id' => $app->license->id]);
                 }
                 $app->delete();
+                Log::info('Application supprimée localement', ['app_id' => $app->id]);
             });
 
             return redirect()->route('laravel.index')

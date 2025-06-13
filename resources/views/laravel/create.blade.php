@@ -208,22 +208,27 @@ function createLaravel() {
         apiWaitingTimer: null,
 
         async submitForm(e) {
+            console.log('Début de la soumission du formulaire');
             this.errors = [];
             this.successMessage = '';
             this.isSubmitting = true;
             this.showApiWaitingMessage = false;
             
             this.apiWaitingTimer = setTimeout(() => {
+                console.log('Affichage du message d\'attente API');
                 this.showApiWaitingMessage = true;
             }, 10000);
 
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
+            console.log('Données du formulaire:', data);
             
             const ipsInputs = document.querySelectorAll('#ips-container input[name="ips[]"]');
             const ips = Array.from(ipsInputs).map(input => input.value).filter(ip => ip.trim() !== '');
+            console.log('IPs collectées:', ips);
             
             const generatedDomain = document.getElementById('domain').value;
+            console.log('Domaine généré:', generatedDomain);
             
             const token = document.querySelector('input[name="_token"]').value;
             
@@ -242,7 +247,10 @@ function createLaravel() {
                 }
             });
 
+            console.log('Données préparées pour l\'envoi:', submitData);
+
             try {
+                console.log('Envoi de la requête au serveur');
                 const response = await fetch('{{ route('laravel.store') }}', {
                     method: 'POST',
                     headers: {
@@ -254,34 +262,40 @@ function createLaravel() {
                 });
 
                 const responseData = await response.json();
+                console.log('Réponse du serveur:', responseData);
 
                 clearTimeout(this.apiWaitingTimer);
                 this.showApiWaitingMessage = false;
 
                 if (response.ok) {
                     if (responseData.status === 'success') {
+                        console.log('Création réussie');
                         this.successMessage = responseData.message || 'Opération réussie';
                         setTimeout(() => {
+                            console.log('Redirection vers la liste');
                             window.location.href = '{{ route('laravel.index') }}';
                         }, 1500);
                     } else {
+                        console.error('Erreur de création:', responseData.message);
                         this.errors = [responseData.message || 'Une erreur est survenue'];
                         document.querySelector('.bg-red-50')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 } else {
                     if (response.status === 422) {
+                        console.error('Erreur de validation:', responseData.errors);
                         if (responseData.errors) {
                             this.errors = Object.values(responseData.errors).flat();
                         } else {
                             this.errors = [responseData.message || 'Erreur de validation'];
                         }
                     } else {
+                        console.error('Erreur serveur:', responseData.error);
                         this.errors = [responseData.error || 'Une erreur est survenue lors de la création de l\'application.'];
                     }
                     document.querySelector('.bg-red-50')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('Erreur lors de la communication avec le serveur:', error);
                 this.errors = ['Une erreur est survenue lors de la communication avec le serveur.'];
                 document.querySelector('.bg-red-50')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } finally {
@@ -292,7 +306,10 @@ function createLaravel() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initialisation du formulaire de création');
+    
     const generateLicense = () => {
+        console.log('Génération d\'une nouvelle licence');
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let license = 'DIGMMA-';
         for (let i = 0; i < 4; i++) {
@@ -302,12 +319,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (i < 3) license += '-';
         }
         document.getElementById('license').value = license;
+        console.log('Nouvelle licence générée:', license);
     };
 
     document.getElementById('generateLicense').addEventListener('click', generateLicense);
     generateLicense(); 
 
     const addIpField = () => {
+        console.log('Ajout d\'un nouveau champ IP');
         const container = document.getElementById('ips-container');
         const div = document.createElement('div');
         div.className = 'flex gap-3';
@@ -320,8 +339,10 @@ document.addEventListener('DOMContentLoaded', function() {
             </button>
         `;
         container.appendChild(div);
+        console.log('Nouveau champ IP ajouté');
 
         div.querySelector('.remove-ip').addEventListener('click', function() {
+            console.log('Suppression d\'un champ IP');
             div.remove();
         });
     };
@@ -330,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.remove-ip').forEach(button => {
         button.addEventListener('click', function() {
+            console.log('Suppression d\'un champ IP existant');
             this.closest('.flex').remove();
         });
     });
@@ -338,19 +360,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const durationContainer = document.getElementById('duration-container');
 
     const toggleDuration = () => {
+        console.log('Changement du type de licence:', lifetimeCheckbox.checked ? 'à vie' : 'temporaire');
         durationContainer.style.display = lifetimeCheckbox.checked ? 'none' : 'block';
     };
 
     lifetimeCheckbox.addEventListener('change', toggleDuration);
     toggleDuration();
 });
-</script>
 
-<script>
 const generateDomain = () => {
+    console.log('Génération d\'un nouveau domaine');
     const random = Math.floor(Math.random() * 9000) + 1000;
     const domain = `customer${random}.digmma.site`;
     document.getElementById('domain').value = domain;
+    console.log('Nouveau domaine généré:', domain);
 };
 
 generateDomain();
