@@ -260,12 +260,23 @@ function createLaravel() {
                     body: JSON.stringify(submitData)
                 });
 
-                const result = await response.json();
-                
-                if (response.ok) {
-                    window.location.href = '{{ route('laravel.index') }}';
+                // Si la réponse est une redirection, on suit la redirection
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                // Si on reçoit une réponse JSON (erreur de validation)
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    const result = await response.json();
+                    if (!response.ok) {
+                        this.errors = Object.values(result.errors || {}).flat();
+                    } else {
+                        window.location.href = '{{ route('laravel.index') }}';
+                    }
                 } else {
-                    this.errors = Object.values(result.errors || {}).flat();
+                    // Si on reçoit du HTML, on redirige vers la page d'index
+                    window.location.href = '{{ route('laravel.index') }}';
                 }
             } catch (error) {
                 console.error('Erreur lors de la soumission:', error);

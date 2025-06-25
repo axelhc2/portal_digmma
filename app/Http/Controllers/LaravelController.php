@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Throwable;
+use Illuminate\Support\Facades\Mail;
 
 class LaravelController extends Controller
 {
@@ -129,6 +130,13 @@ class LaravelController extends Controller
                     'app' => $appLaravel
                 ];
             });
+
+            // Envoi de l'email de confirmation de création
+            Log::info('Envoi de l\'email de confirmation de création à l\'utilisateur', [
+                'email' => $result['app']->email,
+                'site_name' => $result['app']->site_name
+            ]);
+            Mail::to($result['app']->email)->send(new \App\Mail\LaravelAppCreatedMail($result['app'], $result['app']->domain));
 
             return redirect()->route('laravel.index')
                 ->with('success', 'Application Laravel créée avec succès');
